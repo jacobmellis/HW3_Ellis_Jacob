@@ -1,0 +1,264 @@
+---
+title: "HW3_Ellis_Jacob"
+author: "Jacob Ellis"
+date: "3/2/2022"
+output: html_document
+knit: (function(input_file, encoding){
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+  encoding=encoding,
+  output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
+---
+
+I made a series of maps that showed the distribution of Olympic medals across the world through the year 2016. I thought it would interesting to look at which countries are most dominant overall and which countries are more dominant in certain event types. I opted to split the events into "distance" (everything from 800m and beyond, including race walk), "sprint" (including hurdles and relays), and "field" (including the multi-events). The plots were less dramatically different than I was hoping, as the U.S. was the overwhelming powerhouse in nearly all situations, so I also included a "non-US" map. One issue I ran into was that some countries have produced a large number of medals but are difficult to see clearly on a world map, such as Jamaica. This problem was improved when I changed the thickness of the border lines, but still caused an issue.
+
+The data came from Kaggle, under the title "Olympic Track and Field Results". It is downloaded as "results.csv" but I renamed "olympic_medals" for the sake of clarity. Below is all the data cleaning to prepare the maps. The first couple of steps are identical to the steps taken in homework 2 for the interactive plot. Some entries were eliminated, including medals won by countries that do not exist anymore, provided that there is not a modern day equivalent to funnel the results into (for example, East and West Germany both combined into Germany, but Yugoslavia could refer to several modern day regions of various countries, so those medals were discarded).
+
+```{r, message = FALSE}
+# Load libraries that may be needed
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(readr)
+library(viridis)
+library(ggthemes)
+library(ggdendro)
+library(maps)
+library(forcats)
+```
+
+
+```{r}
+#reading in the data
+medals <- read.csv("olympic_medals.csv")
+medals2 <- subset(medals, select = c(1, 2, 4, 5, 7))
+medals3 <- medals2[-c(156, 158, 160, 320, 322, 324, 1664, 1666, 1668, 1793, 1795, 1797),]
+medals3[1,]$Nationality <- "GBR"
+medals4 <- medals3
+#changing USSR competitors to Russia
+medals4[medals4$Nationality == "URS",]$Nationality <- "RUS"
+#changing all iterations of German teams to GER
+medals4[medals4$Nationality == "EUA",]$Nationality <- "GER"
+medals4[medals4$Nationality == "GDR",]$Nationality <- "GER"
+medals4[medals4$Nationality == "FRG",]$Nationality <- "GER"
+
+#adding full country name to match worldmap data
+Country <- rep(NA, times = length(medals4$Nationality))
+medals5 <- cbind(medals4, Country)
+medals5[medals5$Nationality == "GBR",]$Country <- "Great Britain"
+medals5[medals5$Nationality == "KEN",]$Country <- "Kenya"
+medals5[medals5$Nationality == "ETH",]$Country <- "Ethiopia"
+medals5[medals5$Nationality == "MAR",]$Country <- "Morocco"
+medals5[medals5$Nationality == "ITA",]$Country <- "Italy"
+medals5[medals5$Nationality == "FIN",]$Country <- "Finland"
+medals5[medals5$Nationality == "POR",]$Country <- "Portugal"
+medals5[medals5$Nationality == "TUN",]$Country <- "Tunisia"
+medals5[medals5$Nationality == "RUS",]$Country <- "Russia"
+medals5[medals5$Nationality == "GER",]$Country <- "Germany"
+medals5[medals5$Nationality == "AUS",]$Country <- "Australia"
+medals5[medals5$Nationality == "TCH",]$Country <- NA
+medals5[medals5$Nationality == "FRA",]$Country <- "France"
+medals5[medals5$Nationality == "SWE",]$Country <- "Sweden"
+medals5[medals5$Nationality == "USA",]$Country <- "USA"
+medals5[medals5$Nationality == "ERI",]$Country <- "Eritrea"
+medals5[medals5$Nationality == "BEL",]$Country <- "Belgium"
+medals5[medals5$Nationality == "HUN",]$Country <- "Hungary"
+medals5[medals5$Nationality == "POL",]$Country <- "Poland"
+medals5[medals5$Nationality == "JAM",]$Country <- "Jamaica"
+medals5[medals5$Nationality == "CAN",]$Country <- "Canada"
+medals5[medals5$Nationality == "TTO",]$Country <- "Trinidad and Tobago"
+medals5[medals5$Nationality == "BAR",]$Country <- "Barbados"
+medals5[medals5$Nationality == "NAM",]$Country <- "Namibia"
+medals5[medals5$Nationality == "NED",]$Country <- "Netherlands"
+medals5[medals5$Nationality == "RSA",]$Country <- "South Africa"
+medals5[medals5$Nationality == "CUB",]$Country <- "Cuba"
+medals5[medals5$Nationality == "BUL",]$Country <- "Bulgaria"
+medals5[medals5$Nationality == "PAN",]$Country <- "Panama"
+medals5[medals5$Nationality == "NZL",]$Country <- "New Zealand"
+medals5[medals5$Nationality == "ESP",]$Country <- "Spain"
+medals5[medals5$Nationality == "CHN",]$Country <- "China"
+medals5[medals5$Nationality == "ALG",]$Country <- "Algeria"
+medals5[medals5$Nationality == "QAT",]$Country <- "Qatar"
+medals5[medals5$Nationality == "LUX",]$Country <- "Luxembourg"
+medals5[medals5$Nationality == "IRL",]$Country <- "Ireland"
+medals5[medals5$Nationality == "SUI",]$Country <- "Switzerland"
+medals5[medals5$Nationality == "GRE",]$Country <- "Greece"
+medals5[medals5$Nationality == "IND",]$Country <- "India"
+medals5[medals5$Nationality == "ECU",]$Country <- "Ecuador"
+medals5[medals5$Nationality == "MEX",]$Country <- "Mexico"
+medals5[medals5$Nationality == "GUA",]$Country <- "Guatemala"
+medals5[medals5$Nationality == "TAN",]$Country <- "Tanzania"
+medals5[medals5$Nationality == "NOR",]$Country <- "Norway"
+medals5[medals5$Nationality == "TUR",]$Country <- "Turkey"
+medals5[medals5$Nationality == "KSA",]$Country <- "Saudi Arabia"
+medals5[medals5$Nationality == "PHI",]$Country <- "Philippines"
+medals5[medals5$Nationality == "DOM",]$Country <- "Dominican Republic"
+medals5[medals5$Nationality == "PUR",]$Country <- "Puerto Rico"
+medals5[medals5$Nationality == "ZAM",]$Country <- "Zambia"
+medals5[medals5$Nationality == "UGA",]$Country <- "Uganda"
+medals5[medals5$Nationality == "SRI",]$Country <- "Sri Lanka"
+medals5[medals5$Nationality == "GRN",]$Country <- "Grenada"
+medals5[medals5$Nationality == "CIV",]$Country <- "Ivory Coast"
+medals5[medals5$Nationality == "DEN",]$Country <- "Denmark"
+medals5[medals5$Nationality == "JPN",]$Country <- "Japan"
+medals5[medals5$Nationality == "BRA",]$Country <- "Brazil"
+medals5[medals5$Nationality == "NGR",]$Country <- "Niger"
+medals5[medals5$Nationality == "BWI",]$Country <- NA
+medals5[medals5$Nationality == "BDI",]$Country <- "Burundi"
+medals5[medals5$Nationality == "SVK",]$Country <- "Slovakia"
+medals5[medals5$Nationality == "LAT",]$Country <- "Latvia"
+medals5[medals5$Nationality == "EUN",]$Country <- NA
+medals5[medals5$Nationality == "SUD",]$Country <- "Sudan"
+medals5[medals5$Nationality == "BOT",]$Country <- "Botswana"
+medals5[medals5$Nationality == "BLR",]$Country <- "Belarus"
+medals5[medals5$Nationality == "EST",]$Country <- "Estonia"
+medals5[medals5$Nationality == "CZE",]$Country <- "Czech Republic"
+medals5[medals5$Nationality == "TPE",]$Country <- "Taiwan"
+medals5[medals5$Nationality == "KAZ",]$Country <- "Kazakhstan"
+medals5[medals5$Nationality == "LTU",]$Country <- "Lithuania"
+medals5[medals5$Nationality == "IRI",]$Country <- "Iran"
+medals5[medals5$Nationality == "TJK",]$Country <- "Tajikistan"
+medals5[medals5$Nationality == "SLO",]$Country <- "Slovenia"
+medals5[medals5$Nationality == "UKR",]$Country <- "Ukraine"
+medals5[medals5$Nationality == "ROU",]$Country <- "Romania"
+medals5[medals5$Nationality == "HAI",]$Country <- "Haiti"
+medals5[medals5$Nationality == "KOR",]$Country <- "South Korea"
+medals5[medals5$Nationality == "ARG",]$Country <- "Argentina"
+medals5[medals5$Nationality == "CHI",]$Country <- "Chile"
+medals5[medals5$Nationality == "DJI",]$Country <- "Djibouti"
+medals5[medals5$Nationality == "YUG",]$Country <- NA
+medals5[medals5$Nationality == "VEN",]$Country <- "Venezuela"
+medals5[medals5$Nationality == "BRN",]$Country <- "Bahrain"
+medals5[medals5$Nationality == "AUT",]$Country <- "Austria"
+medals5[medals5$Nationality == "COL",]$Country <- "Columbia"
+medals5[medals5$Nationality == "MOZ",]$Country <- "Mozambique"
+medals5[medals5$Nationality == "CRO",]$Country <- "Croatia"
+medals5[medals5$Nationality == "SYR",]$Country <- "Syria"
+medals5[medals5$Nationality == "SRB",]$Country <- "Serbia"
+medals5[medals5$Nationality == "ISL",]$Country <- "Iceland"
+medals5[medals5$Nationality == "CMR",]$Country <- "Cameroon"
+medals5[medals5$Nationality == "BAH",]$Country <- "Bahamas"
+
+medals6 <- medals5[-which(is.na(medals5$Country)),]
+```
+
+```{r}
+medals_dist <- medals6[(medals6$Event == "800M Women" | medals6$Event == "800M Men" |
+        medals6$Event == "1500M Women" | medals6$Event == "1500M Men" |
+        medals6$Event == "5000M Women" | medals6$Event == "5000M Men" |
+        medals6$Event == "10000M Women" | medals6$Event == "10000M Men" |
+        medals6$Event == "Marathon Women" | medals6$Event == "Marathon Men" |
+        medals6$Event == "3000M Steeplechase Women" | medals6$Event == "3000M Steeplechase Men" |
+        medals6$Event == "20Km Race Walk Women" | medals6$Event == "20Km Race Walk Men" |
+        medals6$Event == "50Km Race Walk Men"),]
+
+medals_sprint <- medals6[(medals6$Event == "100M Women" | medals6$Event == "100M Men" |
+        medals6$Event == "200M Women" | medals6$Event == "200M Men" |
+        medals6$Event == "400M Women" | medals6$Event == "400M Men" |
+        medals6$Event == "100M Hurdles Women" | medals6$Event == "110M Hurdles Men" |
+        medals6$Event == "400M Hurdles Women" | medals6$Event == "400M Hurdles Men" |
+        medals6$Event == "4x100M Relay Women" | medals6$Event == "4x100M Relay Men" |
+        medals6$Event == "4x400M Relay Women" | medals6$Event == "4x400M Relay Men"),]
+
+medals_field <- medals6[(medals6$Event == "Hammer Throw Women" | medals6$Event == "Hammer Throw Men" |
+        medals6$Event == "Discus Throw Women" | medals6$Event == "Discus Throw Men" |
+        medals6$Event == "Shot Put Women" | medals6$Event == "Shot Put Men" |
+        medals6$Event == "Javelin Throw Women" | medals6$Event == "Javelin Throw Men" |
+        medals6$Event == "Long Jump Women" | medals6$Event == "Long Jump Men" |
+        medals6$Event == "Triple Jump Women" | medals6$Event == "Triple Jump Men" |
+        medals6$Event == "Pole Vault Women" | medals6$Event == "Pole Vault Men" |
+        medals6$Event == "High Jump Women" | medals6$Event == "High Jump Men" |
+        medals6$Event == "Heptathlon Women" | medals6$Event == "Decathlon Men"),]
+
+frame_dist <- data.frame(sort(table(medals_dist$Country), decreasing = TRUE))
+frame_dist$Perc <- round(frame_dist$Freq / sum(frame_dist$Freq) * 100, 1)
+
+frame_sprint <- data.frame(sort(table(medals_sprint$Country), decreasing = TRUE))
+frame_sprint$Perc <- round(frame_sprint$Freq / sum(frame_sprint$Freq) * 100, 1)
+
+frame_field <- data.frame(sort(table(medals_field$Country), decreasing = TRUE))
+frame_field$Perc <- round(frame_field$Freq / sum(frame_field$Freq) * 100, 1)
+
+frame_all <- data.frame(sort(table(medals6$Country), decreasing = TRUE))
+frame_all$Perc <- round(frame_all$Freq / sum(frame_all$Freq) * 100, 1)
+
+frame_nous <- data.frame(sort(table(medals6$Country), decreasing = TRUE))
+frame_nous <- frame_nous[-1,]
+frame_nous$Perc <- round(frame_nous$Freq / sum(frame_nous$Freq) * 100, 1)
+```
+
+
+```{r}
+#ALL MEDALS
+worldmap  <- map_data("world")
+result_all <- left_join(x = worldmap, y = frame_all, by = c("region" = "Var1"))
+result_all$Perc[is.na(result_all$Perc)] <- 0
+#plot
+plot_all <- ggplot(data = result_all, aes(long, lat, group = group, fill = Perc))
+plot_all <- plot_all + geom_polygon(color = "black", size = 0.1) + theme_dendro() +
+    scale_fill_viridis(option = "magma", direction = -1, limits = c(0, 50)) +
+    guides(fill=guide_colorbar(title="Percentage")) +
+    ggtitle("Distributation of All Olympic Track and Field Medals")
+
+#DISTANCE
+result_dist <- left_join(x = worldmap, y = frame_dist, by = c("region" = "Var1"))
+result_dist$Perc[is.na(result_dist$Perc)] <- 0
+#plot
+plot_dist <- ggplot(data = result_dist, aes(long, lat, group = group, fill = Perc))
+plot_dist <- plot_dist + geom_polygon(color = "black", size = 0.1) + theme_dendro() +
+    scale_fill_viridis(option = "magma", direction = -1, limits = c(0, 50)) +
+    guides(fill=guide_colorbar(title="Percentage")) +
+    ggtitle("Distributation of Olympic Track and Field Distance Event Medals")
+
+#SPRINTS
+result_sprint <- left_join(x = worldmap, y = frame_sprint, by = c("region" = "Var1"))
+result_sprint$Perc[is.na(result_sprint$Perc)] <- 0
+#plot
+plot_sprint <- ggplot(data = result_sprint, aes(long, lat, group = group, fill = Perc))
+plot_sprint<- plot_sprint + geom_polygon(color = "black", size = 0.1) + theme_dendro() +
+    scale_fill_viridis(option = "magma", direction = -1, limits = c(0, 50)) +
+    guides(fill=guide_colorbar(title="Percentage")) +
+    ggtitle("Distributation of Olympic Track and Field Sprint Event Medals")
+
+#FIELD
+result_field <- left_join(x = worldmap, y = frame_field, by = c("region" = "Var1"))
+result_field$Perc[is.na(result_field$Perc)] <- 0
+plot_field <- ggplot(data = result_field, aes(long, lat, group = group, fill = Perc))
+#plot
+plot_field <- plot_field + geom_polygon(color = "black", size = 0.1) + theme_dendro() +
+    scale_fill_viridis(option = "magma", direction = -1, limits = c(0, 50)) +
+    guides(fill=guide_colorbar(title="Percentage")) +
+    ggtitle("Distributation of Olympic Track and Field Field Event Medals")
+
+result_nous <- left_join(x = worldmap, y = frame_nous, by = c("region" = "Var1"))
+result_nous$Perc[is.na(result_nous$Perc)] <- 0
+#plot
+plot_nous <- ggplot(data = result_nous, aes(long, lat, group = group, fill = Perc))
+plot_nous <- plot_nous + geom_polygon(color = "black", size = 0.1) + theme_dendro() +
+    scale_fill_viridis(option = "magma", direction = -1, limits = c(0, 50)) +
+    guides(fill=guide_colorbar(title="Percentage")) +
+    ggtitle("Distributation of Non-U.S. Olympic Track and Field Medals")
+```
+
+The first plot shows every medal for track and field.
+```{r}
+plot_all
+```
+
+The next three plots show the difference between the three event categories listed.
+```{r}
+plot_dist; plot_sprint; plot_field
+```
+
+The final plot shows the medals with the U.S. excluded.
+```{r}
+plot_nous
+```
+
+
+
+
+
+
+
+
